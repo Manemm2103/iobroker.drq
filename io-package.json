@@ -1,8 +1,16 @@
 {
   "common": {
     "name": "drq",
-    "version": "0.1.2",
+    "version": "0.2.1",
     "news": {
+      "0.2.1": {
+        "en": "Add a test send button to the admin configuration",
+        "de": "Fuegt einen Test-Senden-Button in der Admin-Konfiguration hinzu"
+      },
+      "0.2.0": {
+        "en": "Add test send states and adapter workbench controls for easier manual testing",
+        "de": "Fuegt Test-Send-States und Adapter-Werkzeuge fuer einfachere manuelle Tests hinzu"
+      },
       "0.1.2": {
         "en": "Add send.direct for immediate sending when the datapoint is written",
         "de": "Fuegt send.direct fuer sofortiges Senden beim Beschreiben des Datenpunkts hinzu"
@@ -171,6 +179,32 @@
         "read": true,
         "write": true,
         "def": ""
+      },
+      "native": {}
+    },
+    {
+      "_id": "send.testMessage",
+      "type": "state",
+      "common": {
+        "name": "Test message",
+        "type": "string",
+        "role": "text",
+        "read": true,
+        "write": true,
+        "def": "Testnachricht aus ioBroker"
+      },
+      "native": {}
+    },
+    {
+      "_id": "send.testTrigger",
+      "type": "state",
+      "common": {
+        "name": "Send test",
+        "type": "boolean",
+        "role": "button",
+        "read": false,
+        "write": true,
+        "def": false
       },
       "native": {}
     },

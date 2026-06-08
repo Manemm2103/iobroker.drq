@@ -2,13 +2,15 @@
 
 Minimaler ioBroker-Adapter zum Senden von DRQ-Nachrichten aus Skripten, Automationen und spaeter Blockly.
 
-## Funktionsumfang in Version 0.1.2
+## Funktionsumfang in Version 0.2.1
 
 - DRQ-Server per URL und API-Key konfigurieren
 - Standard-Empfaenger als DRQ-UINs hinterlegen
 - Nachrichten per `sendTo()` senden
 - Nachrichten ueber beschreibbare `send.*`-States senden
 - Nachrichten ueber `send.direct` sofort beim Schreiben senden
+- Testversand ueber eigene `send.test*`-States
+- Test-Senden-Button direkt in der Admin-Konfiguration
 - einfache Verbindungs- und Fehlerstates
 
 ## Geplante DRQ-API
@@ -59,6 +61,8 @@ Der Adapter stellt dafuer diese States bereit:
 - `drq.0.send.title`
 - `drq.0.send.severity`
 - `drq.0.send.trigger`
+- `drq.0.send.testMessage`
+- `drq.0.send.testTrigger`
 
 Beispiel:
 
@@ -81,6 +85,15 @@ setState('drq.0.send.direct', 'Fenster im Keller ist offen');
 ```
 
 Der Adapter sendet die Nachricht sofort und leert den State danach wieder.
+
+## Testversand
+
+Fuer einen schnellen manuellen Test kannst du diese States verwenden:
+
+- `drq.0.send.testMessage`
+- `drq.0.send.testTrigger`
+
+Wenn `send.testTrigger` auf `true` geschrieben wird, sendet der Adapter den Inhalt aus `send.testMessage`.
 
 ## Naechste sinnvolle Schritte
 

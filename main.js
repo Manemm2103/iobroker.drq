@@ -27,6 +27,8 @@ class DrqAdapter extends utils.Adapter {
         await this.setStateAsync('send.title', '', true);
         await this.setStateAsync('send.severity', 'info', true);
         await this.setStateAsync('send.trigger', false, true);
+        await this.setStateAsync('send.testMessage', 'Testnachricht aus ioBroker', true);
+        await this.setStateAsync('send.testTrigger', false, true);
 
         const issues = this.validateConfig();
         if (issues.length > 0) {
@@ -36,6 +38,7 @@ class DrqAdapter extends utils.Adapter {
 
         await this.subscribeStatesAsync('send.trigger');
         await this.subscribeStatesAsync('send.direct');
+        await this.subscribeStatesAsync('send.testTrigger');
         const reachable = await this.checkConnection();
         await this.setStateAsync('info.connection', reachable, true);
         this.log.info(`DRQ connection state: ${reachable ? 'ready' : 'unreachable'}`);
@@ -141,6 +144,28 @@ class DrqAdapter extends utils.Adapter {
                 }
             },
             {
+                id: 'send.testMessage',
+                common: {
+                    name: 'Test message',
+                    type: 'string',
+                    role: 'text',
+                    read: true,
+                    write: true,
+                    def: 'Testnachricht aus ioBroker'
+                }
+            },
+            {
+                id: 'send.testTrigger',
+                common: {
+                    name: 'Send test',
+                    type: 'boolean',
+                    role: 'button',
+                    read: false,
+                    write: true,
+                    def: false
+                }
+            },
+            {
                 id: 'send.title',
                 common: {
                     name: 'Message title',
@@ -227,6 +252,25 @@ class DrqAdapter extends utils.Adapter {
                 this.log.error(`DRQ direct send failed: ${error.message}`);
             } finally {
                 await this.setStateAsync('send.direct', '', true);
+            }
+        }
+
+        if (id === `${this.namespace}.send.testTrigger`) {
+            try {
+                const testMessage = (await this.getStateAsync('send.testMessage'))?.val || 'Testnachricht aus ioBroker';
+                await this.sendDrqMessage({
+                    text: String(testMessage),
+                    recipients: (await this.getStateAsync('send.recipients'))?.val || '',
+                    title: (await this.getStateAsync('send.title'))?.val || 'DRQ Test',
+                    severity: (await this.getStateAsync('send.severity'))?.val || 'info',
+                    source: this.config.sourceName || 'ioBroker'
+                });
+            } catch (error) {
+                await this.setStateAsync('info.connection', false, true);
+                await this.setStateAsync('info.lastError', error.message, true);
+                this.log.error(`DRQ test send failed: ${error.message}`);
+            } finally {
+                await this.setStateAsync('send.testTrigger', false, true);
             }
         }
     }

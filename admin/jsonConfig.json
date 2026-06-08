@@ -50,6 +50,42 @@
           "sm": 12,
           "md": 6,
           "lg": 6
+        },
+        "testDivider": {
+          "newLine": true,
+          "type": "divider",
+          "sm": 12,
+          "md": 12,
+          "lg": 12
+        },
+        "testInfo": {
+          "newLine": true,
+          "type": "staticText",
+          "text": "Manual test via states: use drq.0.send.testMessage and drq.0.send.testTrigger",
+          "sm": 12,
+          "md": 12,
+          "lg": 12
+        },
+        "testMessageHint": {
+          "newLine": true,
+          "type": "staticText",
+          "text": "Test message text can be changed in the object drq.0.send.testMessage",
+          "sm": 12,
+          "md": 12,
+          "lg": 12
+        },
+        "testSendButton": {
+          "newLine": true,
+          "type": "setState",
+          "label": "Send test message",
+          "id": "drq.%INSTANCE%.send.testTrigger",
+          "val": true,
+          "ack": false,
+          "variant": "contained",
+          "okText": "Test message sent",
+          "sm": 12,
+          "md": 6,
+          "lg": 6
         }
       }
     }
