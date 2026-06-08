@@ -23,6 +23,9 @@ class DrqAdapter extends utils.Adapter {
         await this.setStateAsync('info.lastMessage', '', true);
         await this.setStateAsync('send.text', '', true);
         await this.setStateAsync('send.direct', '', true);
+        await this.setStateAsync('send.info', '', true);
+        await this.setStateAsync('send.warn', '', true);
+        await this.setStateAsync('send.alarm', '', true);
         await this.setStateAsync('send.recipients', this.config.defaultRecipients || '', true);
         await this.setStateAsync('send.title', '', true);
         await this.setStateAsync('send.severity', 'info', true);
@@ -38,6 +41,9 @@ class DrqAdapter extends utils.Adapter {
 
         await this.subscribeStatesAsync('send.trigger');
         await this.subscribeStatesAsync('send.direct');
+        await this.subscribeStatesAsync('send.info');
+        await this.subscribeStatesAsync('send.warn');
+        await this.subscribeStatesAsync('send.alarm');
         await this.subscribeStatesAsync('send.testTrigger');
         const reachable = await this.checkConnection();
         await this.setStateAsync('info.connection', reachable, true);
@@ -125,6 +131,39 @@ class DrqAdapter extends utils.Adapter {
                 id: 'send.direct',
                 common: {
                     name: 'Direct message',
+                    type: 'string',
+                    role: 'text',
+                    read: true,
+                    write: true,
+                    def: ''
+                }
+            },
+            {
+                id: 'send.info',
+                common: {
+                    name: 'Direct info message',
+                    type: 'string',
+                    role: 'text',
+                    read: true,
+                    write: true,
+                    def: ''
+                }
+            },
+            {
+                id: 'send.warn',
+                common: {
+                    name: 'Direct warn message',
+                    type: 'string',
+                    role: 'text',
+                    read: true,
+                    write: true,
+                    def: ''
+                }
+            },
+            {
+                id: 'send.alarm',
+                common: {
+                    name: 'Direct alarm message',
                     type: 'string',
                     role: 'text',
                     read: true,
@@ -239,13 +278,7 @@ class DrqAdapter extends utils.Adapter {
             }
 
             try {
-                await this.sendDrqMessage({
-                    text: directText,
-                    recipients: (await this.getStateAsync('send.recipients'))?.val || '',
-                    title: (await this.getStateAsync('send.title'))?.val || '',
-                    severity: (await this.getStateAsync('send.severity'))?.val || 'info',
-                    source: this.config.sourceName || 'ioBroker'
-                });
+                await this.sendDirectStateMessage(directText, (await this.getStateAsync('send.severity'))?.val || 'info');
             } catch (error) {
                 await this.setStateAsync('info.connection', false, true);
                 await this.setStateAsync('info.lastError', error.message, true);
@@ -253,6 +286,18 @@ class DrqAdapter extends utils.Adapter {
             } finally {
                 await this.setStateAsync('send.direct', '', true);
             }
+        }
+
+        if (id === `${this.namespace}.send.info`) {
+            await this.handleSeverityDirectState('send.info', state, 'info');
+        }
+
+        if (id === `${this.namespace}.send.warn`) {
+            await this.handleSeverityDirectState('send.warn', state, 'warn');
+        }
+
+        if (id === `${this.namespace}.send.alarm`) {
+            await this.handleSeverityDirectState('send.alarm', state, 'alarm');
         }
 
         if (id === `${this.namespace}.send.testTrigger`) {
@@ -404,6 +449,34 @@ class DrqAdapter extends utils.Adapter {
             severity: severityState?.val || 'info',
             source: this.config.sourceName || 'ioBroker'
         });
+    }
+
+    async sendDirectStateMessage(text, severity) {
+        await this.sendDrqMessage({
+            text,
+            recipients: (await this.getStateAsync('send.recipients'))?.val || '',
+            title: (await this.getStateAsync('send.title'))?.val || '',
+            severity,
+            source: this.config.sourceName || 'ioBroker'
+        });
+    }
+
+    async handleSeverityDirectState(stateId, state, severity) {
+        const directText = typeof state.val === 'string' ? state.val.trim() : '';
+        if (!directText) {
+            await this.setStateAsync(stateId, '', true);
+            return;
+        }
+
+        try {
+            await this.sendDirectStateMessage(directText, severity);
+        } catch (error) {
+            await this.setStateAsync('info.connection', false, true);
+            await this.setStateAsync('info.lastError', error.message, true);
+            this.log.error(`DRQ ${severity} send failed: ${error.message}`);
+        } finally {
+            await this.setStateAsync(stateId, '', true);
+        }
     }
 
     async onMessage(obj) {

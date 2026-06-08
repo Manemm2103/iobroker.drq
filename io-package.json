@@ -1,8 +1,12 @@
 {
   "common": {
     "name": "drq",
-    "version": "0.2.1",
+    "version": "0.3.0",
     "news": {
+      "0.3.0": {
+        "en": "Add dedicated direct datapoints for info, warn and alarm messages",
+        "de": "Fuegt eigene Direkt-Datenpunkte fuer Info-, Warn- und Alarm-Nachrichten hinzu"
+      },
       "0.2.1": {
         "en": "Add a test send button to the admin configuration",
         "de": "Fuegt einen Test-Senden-Button in der Admin-Konfiguration hinzu"
@@ -161,6 +165,45 @@
       "type": "state",
       "common": {
         "name": "Direct message",
+        "type": "string",
+        "role": "text",
+        "read": true,
+        "write": true,
+        "def": ""
+      },
+      "native": {}
+    },
+    {
+      "_id": "send.info",
+      "type": "state",
+      "common": {
+        "name": "Direct info message",
+        "type": "string",
+        "role": "text",
+        "read": true,
+        "write": true,
+        "def": ""
+      },
+      "native": {}
+    },
+    {
+      "_id": "send.warn",
+      "type": "state",
+      "common": {
+        "name": "Direct warn message",
+        "type": "string",
+        "role": "text",
+        "read": true,
+        "write": true,
+        "def": ""
+      },
+      "native": {}
+    },
+    {
+      "_id": "send.alarm",
+      "type": "state",
+      "common": {
+        "name": "Direct alarm message",
         "type": "string",
         "role": "text",
         "read": true,

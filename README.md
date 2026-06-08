@@ -2,13 +2,14 @@
 
 Minimaler ioBroker-Adapter zum Senden von DRQ-Nachrichten aus Skripten, Automationen und spaeter Blockly.
 
-## Funktionsumfang in Version 0.2.1
+## Funktionsumfang in Version 0.3.0
 
 - DRQ-Server per URL und API-Key konfigurieren
 - Standard-Empfaenger als DRQ-UINs hinterlegen
 - Nachrichten per `sendTo()` senden
 - Nachrichten ueber beschreibbare `send.*`-States senden
 - Nachrichten ueber `send.direct` sofort beim Schreiben senden
+- Eigene Direkt-Datenpunkte fuer `info`, `warn` und `alarm`
 - Testversand ueber eigene `send.test*`-States
 - Test-Senden-Button direkt in der Admin-Konfiguration
 - einfache Verbindungs- und Fehlerstates
@@ -57,6 +58,9 @@ Der Adapter stellt dafuer diese States bereit:
 
 - `drq.0.send.text`
 - `drq.0.send.direct`
+- `drq.0.send.info`
+- `drq.0.send.warn`
+- `drq.0.send.alarm`
 - `drq.0.send.recipients`
 - `drq.0.send.title`
 - `drq.0.send.severity`
@@ -85,6 +89,24 @@ setState('drq.0.send.direct', 'Fenster im Keller ist offen');
 ```
 
 Der Adapter sendet die Nachricht sofort und leert den State danach wieder.
+
+## Direkte Nachrichtentypen
+
+Wenn du den Typ direkt ueber den Datenpunkt ausdruecken willst, kannst du auch diese States verwenden:
+
+- `drq.0.send.info`
+- `drq.0.send.warn`
+- `drq.0.send.alarm`
+
+Beispiele:
+
+```javascript
+setState('drq.0.send.info', 'Waschmaschine ist fertig');
+setState('drq.0.send.warn', 'Fenster im Keller ist offen');
+setState('drq.0.send.alarm', 'Wassersensor hat ausgeloest');
+```
+
+Die States senden sofort und werden danach wieder geleert.
 
 ## Testversand
 
