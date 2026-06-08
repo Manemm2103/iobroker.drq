@@ -11,15 +11,21 @@ class DrqAdapter extends utils.Adapter {
 
         this.on('ready', this.onReady.bind(this));
         this.on('message', this.onMessage.bind(this));
+        this.on('stateChange', this.onStateChange.bind(this));
         this.on('unload', this.onUnload.bind(this));
     }
 
     async onReady() {
-        await this.ensureInfoStates();
+        await this.ensureObjects();
         await this.setStateAsync('info.connection', false, true);
         await this.setStateAsync('info.lastError', '', true);
         await this.setStateAsync('info.lastResult', '', true);
         await this.setStateAsync('info.lastMessage', '', true);
+        await this.setStateAsync('send.text', '', true);
+        await this.setStateAsync('send.recipients', this.config.defaultRecipients || '', true);
+        await this.setStateAsync('send.title', '', true);
+        await this.setStateAsync('send.severity', 'info', true);
+        await this.setStateAsync('send.trigger', false, true);
 
         const issues = this.validateConfig();
         if (issues.length > 0) {
@@ -27,6 +33,7 @@ class DrqAdapter extends utils.Adapter {
             return;
         }
 
+        await this.subscribeStatesAsync('send.trigger');
         const reachable = await this.checkConnection();
         await this.setStateAsync('info.connection', reachable, true);
         this.log.info(`DRQ connection state: ${reachable ? 'ready' : 'unreachable'}`);
@@ -36,11 +43,19 @@ class DrqAdapter extends utils.Adapter {
         callback();
     }
 
-    async ensureInfoStates() {
+    async ensureObjects() {
         await this.setObjectNotExistsAsync('info', {
             type: 'channel',
             common: {
                 name: 'Information'
+            },
+            native: {}
+        });
+
+        await this.setObjectNotExistsAsync('send', {
+            type: 'channel',
+            common: {
+                name: 'Send'
             },
             native: {}
         });
@@ -89,6 +104,66 @@ class DrqAdapter extends utils.Adapter {
                     write: false,
                     def: ''
                 }
+            },
+            {
+                id: 'send.text',
+                common: {
+                    name: 'Message text',
+                    type: 'string',
+                    role: 'text',
+                    read: true,
+                    write: true,
+                    def: ''
+                }
+            },
+            {
+                id: 'send.recipients',
+                common: {
+                    name: 'Recipients',
+                    type: 'string',
+                    role: 'text',
+                    read: true,
+                    write: true,
+                    def: ''
+                }
+            },
+            {
+                id: 'send.title',
+                common: {
+                    name: 'Message title',
+                    type: 'string',
+                    role: 'text',
+                    read: true,
+                    write: true,
+                    def: ''
+                }
+            },
+            {
+                id: 'send.severity',
+                common: {
+                    name: 'Severity',
+                    type: 'string',
+                    role: 'text',
+                    read: true,
+                    write: true,
+                    def: 'info',
+                    states: {
+                        info: 'info',
+                        warn: 'warn',
+                        alarm: 'alarm'
+                    }
+                }
+            },
+            {
+                id: 'send.trigger',
+                common: {
+                    name: 'Send trigger',
+                    type: 'boolean',
+                    role: 'button',
+                    read: false,
+                    write: true,
+                    def: false
+                }
             }
         ];
 
@@ -98,6 +173,24 @@ class DrqAdapter extends utils.Adapter {
                 common: state.common,
                 native: {}
             });
+        }
+    }
+
+    async onStateChange(id, state) {
+        if (!state || state.ack) {
+            return;
+        }
+
+        if (id === `${this.namespace}.send.trigger`) {
+            try {
+                await this.sendConfiguredStateMessage();
+            } catch (error) {
+                await this.setStateAsync('info.connection', false, true);
+                await this.setStateAsync('info.lastError', error.message, true);
+                this.log.error(`DRQ send via state failed: ${error.message}`);
+            } finally {
+                await this.setStateAsync('send.trigger', false, true);
+            }
         }
     }
 
@@ -213,6 +306,23 @@ class DrqAdapter extends utils.Adapter {
             recipients: finalRecipients,
             response: result
         };
+    }
+
+    async sendConfiguredStateMessage() {
+        const [textState, recipientsState, titleState, severityState] = await Promise.all([
+            this.getStateAsync('send.text'),
+            this.getStateAsync('send.recipients'),
+            this.getStateAsync('send.title'),
+            this.getStateAsync('send.severity')
+        ]);
+
+        return this.sendDrqMessage({
+            text: textState?.val || '',
+            recipients: recipientsState?.val || '',
+            title: titleState?.val || '',
+            severity: severityState?.val || 'info',
+            source: this.config.sourceName || 'ioBroker'
+        });
     }
 
     async onMessage(obj) {

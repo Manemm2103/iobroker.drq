@@ -2,11 +2,12 @@
 
 Minimaler ioBroker-Adapter zum Senden von DRQ-Nachrichten aus Skripten, Automationen und spaeter Blockly.
 
-## Funktionsumfang in Version 0.0.1
+## Funktionsumfang in Version 0.1.0
 
 - DRQ-Server per URL und API-Key konfigurieren
 - Standard-Empfaenger als DRQ-UINs hinterlegen
 - Nachrichten per `sendTo()` senden
+- Nachrichten ueber beschreibbare `send.*`-States senden
 - einfache Verbindungs- und Fehlerstates
 
 ## Geplante DRQ-API
@@ -47,9 +48,26 @@ sendTo('drq.0', 'send', {
 
 Wenn `recipients` nicht uebergeben wird, verwendet der Adapter die in der Instanz konfigurierten Standard-Empfaenger.
 
+## Senden ueber Datenpunkte
+
+Der Adapter stellt dafuer diese States bereit:
+
+- `drq.0.send.text`
+- `drq.0.send.recipients`
+- `drq.0.send.title`
+- `drq.0.send.severity`
+- `drq.0.send.trigger`
+
+Beispiel:
+
+1. `drq.0.send.text` auf `Heizung stoert`
+2. optional `drq.0.send.recipients` auf `4711,8159`
+3. optional `drq.0.send.title` auf `Haus`
+4. `drq.0.send.severity` auf `info`, `warn` oder `alarm`
+5. `drq.0.send.trigger` auf `true`
+
 ## Naechste sinnvolle Schritte
 
-1. DRQ-Server-API im Messenger-Repo implementieren
-2. Adapter in ioBroker testweise installieren
-3. Admin-UI mit Testbutton ergaenzen
-4. Blockly-Bloecke fuer DRQ-Nachrichten bauen
+1. Admin-UI mit Testbutton ergaenzen
+2. Blockly-Bloecke fuer DRQ-Nachrichten bauen
+3. Empfangs-Datenpunkte fuer eingehende DRQ-Nachrichten bauen

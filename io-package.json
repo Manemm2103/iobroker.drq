@@ -1,8 +1,12 @@
 {
   "common": {
     "name": "drq",
-    "version": "0.0.3",
+    "version": "0.1.0",
     "news": {
+      "0.1.0": {
+        "en": "Add writable send states for text, recipients, title, severity and trigger-based sending",
+        "de": "Fuegt beschreibbare Send-States fuer Text, Empfaenger, Titel, Schweregrad und Trigger-Versand hinzu"
+      },
       "0.0.3": {
         "en": "Enable messagebox support for sendTo and improve adapter metadata",
         "de": "Aktiviert messagebox fuer sendTo und verbessert die Adapter-Metadaten"
@@ -116,6 +120,84 @@
         "read": true,
         "write": false,
         "def": ""
+      },
+      "native": {}
+    },
+    {
+      "_id": "send",
+      "type": "channel",
+      "common": {
+        "name": "Send"
+      },
+      "native": {}
+    },
+    {
+      "_id": "send.text",
+      "type": "state",
+      "common": {
+        "name": "Message text",
+        "type": "string",
+        "role": "text",
+        "read": true,
+        "write": true,
+        "def": ""
+      },
+      "native": {}
+    },
+    {
+      "_id": "send.recipients",
+      "type": "state",
+      "common": {
+        "name": "Recipients",
+        "type": "string",
+        "role": "text",
+        "read": true,
+        "write": true,
+        "def": ""
+      },
+      "native": {}
+    },
+    {
+      "_id": "send.title",
+      "type": "state",
+      "common": {
+        "name": "Message title",
+        "type": "string",
+        "role": "text",
+        "read": true,
+        "write": true,
+        "def": ""
+      },
+      "native": {}
+    },
+    {
+      "_id": "send.severity",
+      "type": "state",
+      "common": {
+        "name": "Severity",
+        "type": "string",
+        "role": "text",
+        "read": true,
+        "write": true,
+        "def": "info",
+        "states": {
+          "info": "info",
+          "warn": "warn",
+          "alarm": "alarm"
+        }
+      },
+      "native": {}
+    },
+    {
+      "_id": "send.trigger",
+      "type": "state",
+      "common": {
+        "name": "Send trigger",
+        "type": "boolean",
+        "role": "button",
+        "read": false,
+        "write": true,
+        "def": false
       },
       "native": {}
     }
