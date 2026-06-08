@@ -29,6 +29,7 @@
     "type": "communication",
     "icon": "drq-logo.svg",
     "enabled": true,
+    "messagebox": true,
     "extIcon": "https://raw.githubusercontent.com/Manemm2103/iobroker.drq/main/admin/drq-logo.svg",
     "readme": "https://github.com/Manemm2103/iobroker.drq/blob/main/README.md",
     "loglevel": "info",
