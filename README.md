@@ -1,8 +1,8 @@
 # ioBroker.drq
 
-Minimaler ioBroker-Adapter zum Senden von DRQ-Nachrichten aus Skripten, Automationen und spaeter Blockly.
+Minimaler ioBroker-Adapter zum Senden und Empfangen von DRQ-Nachrichten aus Skripten, Automationen und spaeter Blockly.
 
-## Funktionsumfang in Version 0.3.0
+## Funktionsumfang in Version 0.4.0
 
 - DRQ-Server per URL und API-Key konfigurieren
 - Standard-Empfaenger als DRQ-UINs hinterlegen
@@ -12,6 +12,8 @@ Minimaler ioBroker-Adapter zum Senden von DRQ-Nachrichten aus Skripten, Automati
 - Eigene Direkt-Datenpunkte fuer `info`, `warn` und `alarm`
 - Testversand ueber eigene `send.test*`-States
 - Test-Senden-Button direkt in der Admin-Konfiguration
+- Empfang eingehender DRQ-Nachrichten ueber `inbox.*`-States
+- konfigurierbares Inbox-Polling
 - einfache Verbindungs- und Fehlerstates
 
 ## Geplante DRQ-API
@@ -19,6 +21,7 @@ Minimaler ioBroker-Adapter zum Senden von DRQ-Nachrichten aus Skripten, Automati
 Der Adapter erwartet serverseitig einen DRQ-Endpunkt:
 
 - `POST /api/integrations/iobroker/messages`
+- `GET /api/integrations/iobroker/inbox`
 
 Header:
 
@@ -117,8 +120,24 @@ Fuer einen schnellen manuellen Test kannst du diese States verwenden:
 
 Wenn `send.testTrigger` auf `true` geschrieben wird, sendet der Adapter den Inhalt aus `send.testMessage`.
 
-## Naechste sinnvolle Schritte
+## Empfang ueber Datenpunkte
 
-1. Admin-UI mit Testbutton ergaenzen
-2. Blockly-Bloecke fuer DRQ-Nachrichten bauen
-3. Empfangs-Datenpunkte fuer eingehende DRQ-Nachrichten bauen
+Der Adapter spiegelt neue eingehende DRQ-Nachrichten auf diese States:
+
+- `drq.0.inbox.lastMessage`
+- `drq.0.inbox.lastSender`
+- `drq.0.inbox.lastSenderUin`
+- `drq.0.inbox.lastTimestamp`
+- `drq.0.inbox.lastSeverity`
+- `drq.0.inbox.lastMessageId`
+- `drq.0.inbox.lastRaw`
+- `drq.0.inbox.lastBatchCount`
+- `drq.0.inbox.pollNow`
+
+`inbox.pollNow` kann manuell auf `true` geschrieben werden, wenn sofort nach neuen Nachrichten gesucht werden soll.
+
+Zusätzlich gibt es in der Instanz-Konfiguration:
+
+- `Inbox poll interval (ms)`
+
+Darueber legt ihr fest, wie oft der Adapter neue DRQ-Nachrichten fuer den ioBroker-Integrationschat abholt.

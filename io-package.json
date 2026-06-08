@@ -1,8 +1,12 @@
 {
   "common": {
     "name": "drq",
-    "version": "0.3.0",
+    "version": "0.4.0",
     "news": {
+      "0.4.0": {
+        "en": "Add inbox polling and receive datapoints for incoming DRQ messages",
+        "de": "Fuegt Inbox-Polling und Empfangs-Datenpunkte fuer eingehende DRQ-Nachrichten hinzu"
+      },
       "0.3.0": {
         "en": "Add dedicated direct datapoints for info, warn and alarm messages",
         "de": "Fuegt eigene Direkt-Datenpunkte fuer Info-, Warn- und Alarm-Nachrichten hinzu"
@@ -41,8 +45,8 @@
       "de": "DRQ"
     },
     "desc": {
-      "en": "Send status messages from ioBroker to DRQ users",
-      "de": "Statusmeldungen aus ioBroker an DRQ-Benutzer senden"
+      "en": "Send and receive DRQ messenger messages from ioBroker",
+      "de": "DRQ-Messenger-Nachrichten aus ioBroker senden und empfangen"
     },
     "authors": [
       "OpenAI Codex"
@@ -76,7 +80,8 @@
     "apiKey": "",
     "defaultRecipients": "",
     "sourceName": "ioBroker",
-    "timeoutMs": 10000
+    "timeoutMs": 10000,
+    "pollIntervalMs": 15000
   },
   "objects": [
     {

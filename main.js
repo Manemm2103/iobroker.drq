@@ -9,6 +9,8 @@ class DrqAdapter extends utils.Adapter {
             name: 'drq'
         });
 
+        this.inboxPollTimer = null;
+
         this.on('ready', this.onReady.bind(this));
         this.on('message', this.onMessage.bind(this));
         this.on('stateChange', this.onStateChange.bind(this));
@@ -21,6 +23,15 @@ class DrqAdapter extends utils.Adapter {
         await this.setStateAsync('info.lastError', '', true);
         await this.setStateAsync('info.lastResult', '', true);
         await this.setStateAsync('info.lastMessage', '', true);
+        await this.setStateAsync('inbox.lastMessage', '', true);
+        await this.setStateAsync('inbox.lastSender', '', true);
+        await this.setStateAsync('inbox.lastSenderUin', '', true);
+        await this.setStateAsync('inbox.lastTimestamp', '', true);
+        await this.setStateAsync('inbox.lastSeverity', '', true);
+        await this.setStateAsync('inbox.lastMessageId', 0, true);
+        await this.setStateAsync('inbox.lastRaw', '', true);
+        await this.setStateAsync('inbox.lastBatchCount', 0, true);
+        await this.setStateAsync('inbox.pollNow', false, true);
         await this.setStateAsync('send.text', '', true);
         await this.setStateAsync('send.direct', '', true);
         await this.setStateAsync('send.info', '', true);
@@ -45,12 +56,22 @@ class DrqAdapter extends utils.Adapter {
         await this.subscribeStatesAsync('send.warn');
         await this.subscribeStatesAsync('send.alarm');
         await this.subscribeStatesAsync('send.testTrigger');
+        await this.subscribeStatesAsync('inbox.pollNow');
         const reachable = await this.checkConnection();
         await this.setStateAsync('info.connection', reachable, true);
         this.log.info(`DRQ connection state: ${reachable ? 'ready' : 'unreachable'}`);
+        this.startInboxPolling();
+        try {
+            await this.pollInbox();
+        } catch (error) {
+            await this.setStateAsync('info.connection', false, true);
+            await this.setStateAsync('info.lastError', error.message, true);
+            this.log.warn(`Initial DRQ inbox poll failed: ${error.message}`);
+        }
     }
 
     onUnload(callback) {
+        this.stopInboxPolling();
         callback();
     }
 
@@ -67,6 +88,14 @@ class DrqAdapter extends utils.Adapter {
             type: 'channel',
             common: {
                 name: 'Send'
+            },
+            native: {}
+        });
+
+        await this.setObjectNotExistsAsync('inbox', {
+            type: 'channel',
+            common: {
+                name: 'Inbox'
             },
             native: {}
         });
@@ -114,6 +143,105 @@ class DrqAdapter extends utils.Adapter {
                     read: true,
                     write: false,
                     def: ''
+                }
+            },
+            {
+                id: 'inbox.lastMessage',
+                common: {
+                    name: 'Last received message',
+                    type: 'string',
+                    role: 'text',
+                    read: true,
+                    write: false,
+                    def: ''
+                }
+            },
+            {
+                id: 'inbox.lastSender',
+                common: {
+                    name: 'Last sender username',
+                    type: 'string',
+                    role: 'text',
+                    read: true,
+                    write: false,
+                    def: ''
+                }
+            },
+            {
+                id: 'inbox.lastSenderUin',
+                common: {
+                    name: 'Last sender UIN',
+                    type: 'string',
+                    role: 'text',
+                    read: true,
+                    write: false,
+                    def: ''
+                }
+            },
+            {
+                id: 'inbox.lastTimestamp',
+                common: {
+                    name: 'Last received timestamp',
+                    type: 'string',
+                    role: 'value.time',
+                    read: true,
+                    write: false,
+                    def: ''
+                }
+            },
+            {
+                id: 'inbox.lastSeverity',
+                common: {
+                    name: 'Last received severity',
+                    type: 'string',
+                    role: 'text',
+                    read: true,
+                    write: false,
+                    def: ''
+                }
+            },
+            {
+                id: 'inbox.lastMessageId',
+                common: {
+                    name: 'Last received message ID',
+                    type: 'number',
+                    role: 'value',
+                    read: true,
+                    write: false,
+                    def: 0
+                }
+            },
+            {
+                id: 'inbox.lastRaw',
+                common: {
+                    name: 'Last received raw payload',
+                    type: 'string',
+                    role: 'json',
+                    read: true,
+                    write: false,
+                    def: ''
+                }
+            },
+            {
+                id: 'inbox.lastBatchCount',
+                common: {
+                    name: 'Last inbox batch count',
+                    type: 'number',
+                    role: 'value',
+                    read: true,
+                    write: false,
+                    def: 0
+                }
+            },
+            {
+                id: 'inbox.pollNow',
+                common: {
+                    name: 'Poll inbox now',
+                    type: 'boolean',
+                    role: 'button',
+                    read: false,
+                    write: true,
+                    def: false
                 }
             },
             {
@@ -318,6 +446,18 @@ class DrqAdapter extends utils.Adapter {
                 await this.setStateAsync('send.testTrigger', false, true);
             }
         }
+
+        if (id === `${this.namespace}.inbox.pollNow`) {
+            try {
+                await this.pollInbox();
+            } catch (error) {
+                await this.setStateAsync('info.connection', false, true);
+                await this.setStateAsync('info.lastError', error.message, true);
+                this.log.error(`DRQ inbox poll failed: ${error.message}`);
+            } finally {
+                await this.setStateAsync('inbox.pollNow', false, true);
+            }
+        }
     }
 
     validateConfig() {
@@ -376,6 +516,34 @@ class DrqAdapter extends utils.Adapter {
                 'x-api-key': String(this.config.apiKey || '').trim()
             },
             body: JSON.stringify(payload),
+            signal: AbortSignal.timeout(Number(this.config.timeoutMs) || 10000)
+        });
+
+        const bodyText = await response.text();
+        let body = null;
+
+        if (bodyText) {
+            try {
+                body = JSON.parse(bodyText);
+            } catch (error) {
+                body = { raw: bodyText };
+            }
+        }
+
+        if (!response.ok) {
+            const message = body && body.message ? body.message : `HTTP ${response.status}`;
+            throw new Error(message);
+        }
+
+        return body || {};
+    }
+
+    async getJson(pathname) {
+        const response = await fetch(this.buildEndpoint(pathname), {
+            method: 'GET',
+            headers: {
+                'x-api-key': String(this.config.apiKey || '').trim()
+            },
             signal: AbortSignal.timeout(Number(this.config.timeoutMs) || 10000)
         });
 
@@ -479,6 +647,61 @@ class DrqAdapter extends utils.Adapter {
         }
     }
 
+    stopInboxPolling() {
+        if (this.inboxPollTimer) {
+            clearInterval(this.inboxPollTimer);
+            this.inboxPollTimer = null;
+        }
+    }
+
+    startInboxPolling() {
+        this.stopInboxPolling();
+
+        const intervalMs = Math.max(Number(this.config.pollIntervalMs) || 15000, 5000);
+        this.inboxPollTimer = setInterval(() => {
+            this.pollInbox().catch(async (error) => {
+                await this.setStateAsync('info.connection', false, true);
+                await this.setStateAsync('info.lastError', error.message, true);
+                this.log.warn(`DRQ inbox polling failed: ${error.message}`);
+            });
+        }, intervalMs);
+    }
+
+    async pollInbox() {
+        const lastMessageId = Number((await this.getStateAsync('inbox.lastMessageId'))?.val || 0);
+        const result = await this.getJson(`/api/integrations/iobroker/inbox?afterId=${lastMessageId}&limit=20`);
+        const messages = Array.isArray(result.messages) ? result.messages : [];
+
+        await this.setStateAsync('info.connection', true, true);
+        await this.setStateAsync('info.lastError', '', true);
+        await this.setStateAsync('inbox.lastBatchCount', messages.length, true);
+
+        if (!messages.length) {
+            return {
+                ok: true,
+                count: 0,
+                messages: []
+            };
+        }
+
+        const latestMessage = messages[messages.length - 1];
+        await this.setStateAsync('inbox.lastMessage', latestMessage.content || '', true);
+        await this.setStateAsync('inbox.lastSender', latestMessage.senderUsername || '', true);
+        await this.setStateAsync('inbox.lastSenderUin', latestMessage.senderUin != null ? String(latestMessage.senderUin) : '', true);
+        await this.setStateAsync('inbox.lastTimestamp', latestMessage.timestamp || '', true);
+        await this.setStateAsync('inbox.lastSeverity', latestMessage.severity || 'info', true);
+        await this.setStateAsync('inbox.lastMessageId', Number(latestMessage.id) || lastMessageId, true);
+        await this.setStateAsync('inbox.lastRaw', JSON.stringify(latestMessage), true);
+
+        this.log.info(`Received ${messages.length} DRQ inbox message(s), latest from ${latestMessage.senderUsername || 'unknown sender'}`);
+
+        return {
+            ok: true,
+            count: messages.length,
+            messages
+        };
+    }
+
     async onMessage(obj) {
         if (!obj || !obj.command) {
             return;
@@ -494,6 +717,22 @@ class DrqAdapter extends utils.Adapter {
                 await this.setStateAsync('info.connection', false, true);
                 await this.setStateAsync('info.lastError', error.message, true);
                 this.log.error(`DRQ send failed: ${error.message}`);
+                if (obj.callback) {
+                    this.sendTo(obj.from, obj.command, { ok: false, error: error.message }, obj.callback);
+                }
+            }
+            return;
+        }
+
+        if (obj.command === 'pollInbox') {
+            try {
+                const result = await this.pollInbox();
+                if (obj.callback) {
+                    this.sendTo(obj.from, obj.command, result, obj.callback);
+                }
+            } catch (error) {
+                await this.setStateAsync('info.connection', false, true);
+                await this.setStateAsync('info.lastError', error.message, true);
                 if (obj.callback) {
                     this.sendTo(obj.from, obj.command, { ok: false, error: error.message }, obj.callback);
                 }

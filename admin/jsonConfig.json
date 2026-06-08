@@ -51,6 +51,17 @@
           "md": 6,
           "lg": 6
         },
+        "pollIntervalMs": {
+          "newLine": true,
+          "type": "number",
+          "label": "Inbox poll interval (ms)",
+          "help": "How often the adapter checks DRQ for new incoming messages",
+          "min": 5000,
+          "step": 1000,
+          "sm": 12,
+          "md": 6,
+          "lg": 6
+        },
         "testDivider": {
           "newLine": true,
           "type": "divider",
