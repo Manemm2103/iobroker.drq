@@ -1,8 +1,12 @@
 {
   "common": {
     "name": "drq",
-    "version": "0.0.2",
+    "version": "0.0.3",
     "news": {
+      "0.0.3": {
+        "en": "Enable messagebox support for sendTo and improve adapter metadata",
+        "de": "Aktiviert messagebox fuer sendTo und verbessert die Adapter-Metadaten"
+      },
       "0.0.2": {
         "en": "Fix jsonConfig validation and create info states explicitly on startup",
         "de": "Behebt jsonConfig-Validierung und legt info-States beim Start explizit an"
