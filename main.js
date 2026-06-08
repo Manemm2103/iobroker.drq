@@ -22,6 +22,7 @@ class DrqAdapter extends utils.Adapter {
         await this.setStateAsync('info.lastResult', '', true);
         await this.setStateAsync('info.lastMessage', '', true);
         await this.setStateAsync('send.text', '', true);
+        await this.setStateAsync('send.direct', '', true);
         await this.setStateAsync('send.recipients', this.config.defaultRecipients || '', true);
         await this.setStateAsync('send.title', '', true);
         await this.setStateAsync('send.severity', 'info', true);
@@ -34,6 +35,7 @@ class DrqAdapter extends utils.Adapter {
         }
 
         await this.subscribeStatesAsync('send.trigger');
+        await this.subscribeStatesAsync('send.direct');
         const reachable = await this.checkConnection();
         await this.setStateAsync('info.connection', reachable, true);
         this.log.info(`DRQ connection state: ${reachable ? 'ready' : 'unreachable'}`);
@@ -117,6 +119,17 @@ class DrqAdapter extends utils.Adapter {
                 }
             },
             {
+                id: 'send.direct',
+                common: {
+                    name: 'Direct message',
+                    type: 'string',
+                    role: 'text',
+                    read: true,
+                    write: true,
+                    def: ''
+                }
+            },
+            {
                 id: 'send.recipients',
                 common: {
                     name: 'Recipients',
@@ -190,6 +203,30 @@ class DrqAdapter extends utils.Adapter {
                 this.log.error(`DRQ send via state failed: ${error.message}`);
             } finally {
                 await this.setStateAsync('send.trigger', false, true);
+            }
+        }
+
+        if (id === `${this.namespace}.send.direct`) {
+            const directText = typeof state.val === 'string' ? state.val.trim() : '';
+            if (!directText) {
+                await this.setStateAsync('send.direct', '', true);
+                return;
+            }
+
+            try {
+                await this.sendDrqMessage({
+                    text: directText,
+                    recipients: (await this.getStateAsync('send.recipients'))?.val || '',
+                    title: (await this.getStateAsync('send.title'))?.val || '',
+                    severity: (await this.getStateAsync('send.severity'))?.val || 'info',
+                    source: this.config.sourceName || 'ioBroker'
+                });
+            } catch (error) {
+                await this.setStateAsync('info.connection', false, true);
+                await this.setStateAsync('info.lastError', error.message, true);
+                this.log.error(`DRQ direct send failed: ${error.message}`);
+            } finally {
+                await this.setStateAsync('send.direct', '', true);
             }
         }
     }

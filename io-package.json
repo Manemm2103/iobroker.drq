@@ -1,8 +1,12 @@
 {
   "common": {
     "name": "drq",
-    "version": "0.1.0",
+    "version": "0.1.2",
     "news": {
+      "0.1.2": {
+        "en": "Add send.direct for immediate sending when the datapoint is written",
+        "de": "Fuegt send.direct fuer sofortiges Senden beim Beschreiben des Datenpunkts hinzu"
+      },
       "0.1.0": {
         "en": "Add writable send states for text, recipients, title, severity and trigger-based sending",
         "de": "Fuegt beschreibbare Send-States fuer Text, Empfaenger, Titel, Schweregrad und Trigger-Versand hinzu"
@@ -136,6 +140,19 @@
       "type": "state",
       "common": {
         "name": "Message text",
+        "type": "string",
+        "role": "text",
+        "read": true,
+        "write": true,
+        "def": ""
+      },
+      "native": {}
+    },
+    {
+      "_id": "send.direct",
+      "type": "state",
+      "common": {
+        "name": "Direct message",
         "type": "string",
         "role": "text",
         "read": true,
