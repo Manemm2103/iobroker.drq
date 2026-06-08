@@ -1,8 +1,12 @@
 {
   "common": {
     "name": "drq",
-    "version": "0.0.1",
+    "version": "0.0.2",
     "news": {
+      "0.0.2": {
+        "en": "Fix jsonConfig validation and create info states explicitly on startup",
+        "de": "Behebt jsonConfig-Validierung und legt info-States beim Start explizit an"
+      },
       "0.0.1": {
         "en": "Initial adapter scaffold with DRQ sendTo integration",
         "de": "Erstes Adapter-Grundgeruest mit DRQ-sendTo-Integration"
@@ -50,6 +54,14 @@
     "timeoutMs": 10000
   },
   "objects": [
+    {
+      "_id": "info",
+      "type": "channel",
+      "common": {
+        "name": "Information"
+      },
+      "native": {}
+    },
     {
       "_id": "info.connection",
       "type": "state",

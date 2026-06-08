@@ -15,6 +15,7 @@ class DrqAdapter extends utils.Adapter {
     }
 
     async onReady() {
+        await this.ensureInfoStates();
         await this.setStateAsync('info.connection', false, true);
         await this.setStateAsync('info.lastError', '', true);
         await this.setStateAsync('info.lastResult', '', true);
@@ -33,6 +34,71 @@ class DrqAdapter extends utils.Adapter {
 
     onUnload(callback) {
         callback();
+    }
+
+    async ensureInfoStates() {
+        await this.setObjectNotExistsAsync('info', {
+            type: 'channel',
+            common: {
+                name: 'Information'
+            },
+            native: {}
+        });
+
+        const states = [
+            {
+                id: 'info.connection',
+                common: {
+                    name: 'If connected to DRQ',
+                    type: 'boolean',
+                    role: 'indicator.connected',
+                    read: true,
+                    write: false,
+                    def: false
+                }
+            },
+            {
+                id: 'info.lastMessage',
+                common: {
+                    name: 'Last message text',
+                    type: 'string',
+                    role: 'text',
+                    read: true,
+                    write: false,
+                    def: ''
+                }
+            },
+            {
+                id: 'info.lastResult',
+                common: {
+                    name: 'Last send result',
+                    type: 'string',
+                    role: 'json',
+                    read: true,
+                    write: false,
+                    def: ''
+                }
+            },
+            {
+                id: 'info.lastError',
+                common: {
+                    name: 'Last send error',
+                    type: 'string',
+                    role: 'text',
+                    read: true,
+                    write: false,
+                    def: ''
+                }
+            }
+        ];
+
+        for (const state of states) {
+            await this.setObjectNotExistsAsync(state.id, {
+                type: 'state',
+                common: state.common,
+                native: {}
+            });
+        }
     }
 
     validateConfig() {
@@ -199,4 +265,3 @@ if (require.main !== module) {
 } else {
     (() => new DrqAdapter())();
 }
-

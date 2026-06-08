@@ -25,10 +25,9 @@
         },
         "defaultRecipients": {
           "newLine": true,
-          "type": "textarea",
+          "type": "text",
           "label": "Default DRQ recipients",
           "help": "Comma, semicolon or line separated UIN values",
-          "minRows": 3,
           "sm": 12,
           "md": 12,
           "lg": 12
@@ -56,4 +55,3 @@
     }
   }
 }
-
