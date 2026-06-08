@@ -1,0 +1,30 @@
+{
+  "name": "iobroker.drq",
+  "version": "0.0.1",
+  "description": "ioBroker adapter for sending DRQ messenger notifications",
+  "author": {
+    "name": "OpenAI Codex"
+  },
+  "license": "MIT",
+  "main": "main.js",
+  "keywords": [
+    "ioBroker",
+    "drq",
+    "messenger",
+    "notification"
+  ],
+  "repository": {
+    "type": "git",
+    "url": ""
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@iobroker/adapter-core": "^3.2.3"
+  },
+  "scripts": {
+    "test": "echo \"No tests configured\""
+  }
+}
+

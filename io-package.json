@@ -1,0 +1,106 @@
+{
+  "common": {
+    "name": "drq",
+    "version": "0.0.1",
+    "news": {
+      "0.0.1": {
+        "en": "Initial adapter scaffold with DRQ sendTo integration",
+        "de": "Erstes Adapter-Grundgeruest mit DRQ-sendTo-Integration"
+      }
+    },
+    "titleLang": {
+      "en": "DRQ",
+      "de": "DRQ"
+    },
+    "desc": {
+      "en": "Send status messages from ioBroker to DRQ users",
+      "de": "Statusmeldungen aus ioBroker an DRQ-Benutzer senden"
+    },
+    "authors": [
+      "OpenAI Codex"
+    ],
+    "license": "MIT",
+    "platform": "Javascript/Node.js",
+    "mode": "daemon",
+    "type": "communication",
+    "icon": "drq-logo.svg",
+    "enabled": true,
+    "extIcon": "https://raw.githubusercontent.com/example/iobroker.drq/main/admin/drq-logo.svg",
+    "readme": "https://github.com/example/iobroker.drq/blob/main/README.md",
+    "loglevel": "info",
+    "compact": true,
+    "connectionType": "local",
+    "dataSource": "push",
+    "materialize": true,
+    "adminUI": {
+      "config": "json"
+    },
+    "dependencies": [
+      {
+        "js-controller": ">=5.0.19"
+      }
+    ],
+    "globalDependencies": []
+  },
+  "native": {
+    "baseUrl": "",
+    "apiKey": "",
+    "defaultRecipients": "",
+    "sourceName": "ioBroker",
+    "timeoutMs": 10000
+  },
+  "objects": [
+    {
+      "_id": "info.connection",
+      "type": "state",
+      "common": {
+        "name": "If connected to DRQ",
+        "type": "boolean",
+        "role": "indicator.connected",
+        "read": true,
+        "write": false,
+        "def": false
+      },
+      "native": {}
+    },
+    {
+      "_id": "info.lastMessage",
+      "type": "state",
+      "common": {
+        "name": "Last message text",
+        "type": "string",
+        "role": "text",
+        "read": true,
+        "write": false,
+        "def": ""
+      },
+      "native": {}
+    },
+    {
+      "_id": "info.lastResult",
+      "type": "state",
+      "common": {
+        "name": "Last send result",
+        "type": "string",
+        "role": "json",
+        "read": true,
+        "write": false,
+        "def": ""
+      },
+      "native": {}
+    },
+    {
+      "_id": "info.lastError",
+      "type": "state",
+      "common": {
+        "name": "Last send error",
+        "type": "string",
+        "role": "text",
+        "read": true,
+        "write": false,
+        "def": ""
+      },
+      "native": {}
+    }
+  ]
+}
