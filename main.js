@@ -602,6 +602,29 @@ class DrqAdapter extends utils.Adapter {
         };
     }
 
+    buildMessagePayload(message, overrides = {}) {
+        const source = overrides.source || this.config.sourceName || 'ioBroker';
+
+        if (typeof message === 'string') {
+            return {
+                text: message,
+                recipients: '',
+                title: '',
+                severity: overrides.severity || 'info',
+                source
+            };
+        }
+
+        const payload = message && typeof message === 'object' ? message : {};
+        return {
+            text: typeof payload.text === 'string' ? payload.text : '',
+            recipients: payload.recipients || '',
+            title: payload.title || '',
+            severity: overrides.severity || payload.severity || 'info',
+            source: payload.source || source
+        };
+    }
+
     async sendConfiguredStateMessage() {
         const [textState, recipientsState, titleState, severityState] = await Promise.all([
             this.getStateAsync('send.text'),
@@ -707,16 +730,25 @@ class DrqAdapter extends utils.Adapter {
             return;
         }
 
-        if (obj.command === 'send') {
+        if (['send', 'sendInfo', 'sendWarn', 'sendAlarm'].includes(obj.command)) {
+            const severityOverrides = {
+                send: undefined,
+                sendInfo: 'info',
+                sendWarn: 'warn',
+                sendAlarm: 'alarm'
+            };
+
             try {
-                const result = await this.sendDrqMessage(obj.message || {});
+                const result = await this.sendDrqMessage(
+                    this.buildMessagePayload(obj.message, { severity: severityOverrides[obj.command] })
+                );
                 if (obj.callback) {
                     this.sendTo(obj.from, obj.command, result, obj.callback);
                 }
             } catch (error) {
                 await this.setStateAsync('info.connection', false, true);
                 await this.setStateAsync('info.lastError', error.message, true);
-                this.log.error(`DRQ send failed: ${error.message}`);
+                this.log.error(`DRQ ${obj.command} failed: ${error.message}`);
                 if (obj.callback) {
                     this.sendTo(obj.from, obj.command, { ok: false, error: error.message }, obj.callback);
                 }

@@ -1,8 +1,12 @@
 {
   "common": {
     "name": "drq",
-    "version": "0.4.0",
+    "version": "0.4.1",
     "news": {
+      "0.4.1": {
+        "en": "Add Blockly-friendly send commands for info, warn and alarm via sendTo",
+        "de": "Fuegt Blockly-freundliche Sendekommandos fuer Info, Warnung und Alarm per sendTo hinzu"
+      },
       "0.4.0": {
         "en": "Add inbox polling and receive datapoints for incoming DRQ messages",
         "de": "Fuegt Inbox-Polling und Empfangs-Datenpunkte fuer eingehende DRQ-Nachrichten hinzu"

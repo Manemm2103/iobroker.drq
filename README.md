@@ -2,7 +2,7 @@
 
 Minimaler ioBroker-Adapter zum Senden und Empfangen von DRQ-Nachrichten aus Skripten, Automationen und spaeter Blockly.
 
-## Funktionsumfang in Version 0.4.0
+## Funktionsumfang in Version 0.4.1
 
 - DRQ-Server per URL und API-Key konfigurieren
 - Standard-Empfaenger als DRQ-UINs hinterlegen
@@ -14,6 +14,7 @@ Minimaler ioBroker-Adapter zum Senden und Empfangen von DRQ-Nachrichten aus Skri
 - Test-Senden-Button direkt in der Admin-Konfiguration
 - Empfang eingehender DRQ-Nachrichten ueber `inbox.*`-States
 - konfigurierbares Inbox-Polling
+- Blockly-freundliche `sendTo`-Kommandos fuer `info`, `warn` und `alarm`
 - einfache Verbindungs- und Fehlerstates
 
 ## Geplante DRQ-API
@@ -54,6 +55,39 @@ sendTo('drq.0', 'send', {
 ```
 
 Wenn `recipients` nicht uebergeben wird, verwendet der Adapter die in der Instanz konfigurierten Standard-Empfaenger.
+
+## Blockly-Unterstuetzung
+
+Fuer Blockly kannst du jetzt sehr einfach die normalen `sendTo`-Bloecke des Javascript-Adapters verwenden.
+
+Unterstuetzte Kommandos:
+
+- `send`
+- `sendInfo`
+- `sendWarn`
+- `sendAlarm`
+- `pollInbox`
+
+Fuer `sendInfo`, `sendWarn` und `sendAlarm` reicht im einfachsten Fall schon ein reiner Text als Nachricht.
+
+Beispiele:
+
+```javascript
+sendTo('drq.0', 'sendInfo', 'Waschmaschine ist fertig');
+sendTo('drq.0', 'sendWarn', 'Fenster im Keller ist offen');
+sendTo('drq.0', 'sendAlarm', 'Wassersensor hat ausgeloest');
+```
+
+Wenn du mehr Kontrolle brauchst, kannst du weiterhin `send` mit Objekt verwenden:
+
+```javascript
+sendTo('drq.0', 'send', {
+    text: 'Haustuer wurde geoeffnet',
+    title: 'Alarm',
+    severity: 'warn',
+    recipients: ['4711', '8159']
+});
+```
 
 ## Senden ueber Datenpunkte
 
