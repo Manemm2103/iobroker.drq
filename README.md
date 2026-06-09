@@ -2,7 +2,7 @@
 
 Minimaler ioBroker-Adapter zum Senden und Empfangen von DRQ-Nachrichten aus Skripten, Automationen und spaeter Blockly.
 
-## Funktionsumfang in Version 0.4.1
+## Funktionsumfang in Version 0.5.0
 
 - DRQ-Server per URL und API-Key konfigurieren
 - Standard-Empfaenger als DRQ-UINs hinterlegen
@@ -15,6 +15,7 @@ Minimaler ioBroker-Adapter zum Senden und Empfangen von DRQ-Nachrichten aus Skri
 - Empfang eingehender DRQ-Nachrichten ueber `inbox.*`-States
 - konfigurierbares Inbox-Polling
 - Blockly-freundliche `sendTo`-Kommandos fuer `info`, `warn` und `alarm`
+- lokale Bilder, Videos und Dateien per Dateipfad an DRQ senden
 - einfache Verbindungs- und Fehlerstates
 
 ## Geplante DRQ-API
@@ -22,6 +23,7 @@ Minimaler ioBroker-Adapter zum Senden und Empfangen von DRQ-Nachrichten aus Skri
 Der Adapter erwartet serverseitig einen DRQ-Endpunkt:
 
 - `POST /api/integrations/iobroker/messages`
+- `POST /api/integrations/iobroker/media`
 - `GET /api/integrations/iobroker/inbox`
 
 Header:
@@ -66,6 +68,7 @@ Unterstuetzte Kommandos:
 - `sendInfo`
 - `sendWarn`
 - `sendAlarm`
+- `sendMedia`
 - `pollInbox`
 
 Fuer `sendInfo`, `sendWarn` und `sendAlarm` reicht im einfachsten Fall schon ein reiner Text als Nachricht.
@@ -144,6 +147,40 @@ setState('drq.0.send.alarm', 'Wassersensor hat ausgeloest');
 ```
 
 Die States senden sofort und werden danach wieder geleert.
+
+## Bilder, Videos und Dateien senden
+
+Dafuer gibt es jetzt diese zusaetzlichen States:
+
+- `drq.0.send.imagePath`
+- `drq.0.send.videoPath`
+- `drq.0.send.filePath`
+- `drq.0.send.caption`
+
+Beispiele:
+
+```javascript
+setState('drq.0.send.caption', 'Kamera Haustuer');
+setState('drq.0.send.imagePath', '/opt/iobroker/kamera/snapshot_ch0.jpg');
+```
+
+```javascript
+setState('drq.0.send.caption', 'Bewegung im Hof');
+setState('drq.0.send.videoPath', '/opt/iobroker/kamera/clip1.mp4');
+```
+
+Wenn `send.recipients` leer ist, verwendet der Adapter weiter die Standard-Empfaenger aus der Instanz.
+
+## Medien per sendTo
+
+```javascript
+sendTo('drq.0', 'sendMedia', {
+    path: '/opt/iobroker/kamera/snapshot_ch0.jpg',
+    type: 'image',
+    caption: 'Kamera Haustuer',
+    recipients: ['4711']
+});
+```
 
 ## Testversand
 

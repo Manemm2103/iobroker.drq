@@ -1,6 +1,7 @@
 'use strict';
-
 const utils = require('@iobroker/adapter-core');
+const fs = require('fs');
+const path = require('path');
 
 class DrqAdapter extends utils.Adapter {
     constructor(options = {}) {
@@ -37,6 +38,10 @@ class DrqAdapter extends utils.Adapter {
         await this.setStateAsync('send.info', '', true);
         await this.setStateAsync('send.warn', '', true);
         await this.setStateAsync('send.alarm', '', true);
+        await this.setStateAsync('send.imagePath', '', true);
+        await this.setStateAsync('send.videoPath', '', true);
+        await this.setStateAsync('send.filePath', '', true);
+        await this.setStateAsync('send.caption', '', true);
         await this.setStateAsync('send.recipients', this.config.defaultRecipients || '', true);
         await this.setStateAsync('send.title', '', true);
         await this.setStateAsync('send.severity', 'info', true);
@@ -55,6 +60,9 @@ class DrqAdapter extends utils.Adapter {
         await this.subscribeStatesAsync('send.info');
         await this.subscribeStatesAsync('send.warn');
         await this.subscribeStatesAsync('send.alarm');
+        await this.subscribeStatesAsync('send.imagePath');
+        await this.subscribeStatesAsync('send.videoPath');
+        await this.subscribeStatesAsync('send.filePath');
         await this.subscribeStatesAsync('send.testTrigger');
         await this.subscribeStatesAsync('inbox.pollNow');
         const reachable = await this.checkConnection();
@@ -300,6 +308,50 @@ class DrqAdapter extends utils.Adapter {
                 }
             },
             {
+                id: 'send.imagePath',
+                common: {
+                    name: 'Direct image path',
+                    type: 'string',
+                    role: 'text',
+                    read: true,
+                    write: true,
+                    def: ''
+                }
+            },
+            {
+                id: 'send.videoPath',
+                common: {
+                    name: 'Direct video path',
+                    type: 'string',
+                    role: 'text',
+                    read: true,
+                    write: true,
+                    def: ''
+                }
+            },
+            {
+                id: 'send.filePath',
+                common: {
+                    name: 'Direct file path',
+                    type: 'string',
+                    role: 'text',
+                    read: true,
+                    write: true,
+                    def: ''
+                }
+            },
+            {
+                id: 'send.caption',
+                common: {
+                    name: 'Media caption',
+                    type: 'string',
+                    role: 'text',
+                    read: true,
+                    write: true,
+                    def: ''
+                }
+            },
+            {
                 id: 'send.recipients',
                 common: {
                     name: 'Recipients',
@@ -426,6 +478,18 @@ class DrqAdapter extends utils.Adapter {
 
         if (id === `${this.namespace}.send.alarm`) {
             await this.handleSeverityDirectState('send.alarm', state, 'alarm');
+        }
+
+        if (id === `${this.namespace}.send.imagePath`) {
+            await this.handleMediaPathState('send.imagePath', state, 'image');
+        }
+
+        if (id === `${this.namespace}.send.videoPath`) {
+            await this.handleMediaPathState('send.videoPath', state, 'video');
+        }
+
+        if (id === `${this.namespace}.send.filePath`) {
+            await this.handleMediaPathState('send.filePath', state, 'file');
         }
 
         if (id === `${this.namespace}.send.testTrigger`) {
@@ -566,6 +630,83 @@ class DrqAdapter extends utils.Adapter {
         return body || {};
     }
 
+    detectMediaMimeType(filePath, forcedType = '') {
+        const type = String(forcedType || '').trim().toLowerCase();
+        if (type === 'image') {
+            const ext = path.extname(filePath).toLowerCase();
+            if (ext === '.png') return 'image/png';
+            if (ext === '.gif') return 'image/gif';
+            if (ext === '.webp') return 'image/webp';
+            if (ext === '.bmp') return 'image/bmp';
+            return 'image/jpeg';
+        }
+        if (type === 'video') {
+            const ext = path.extname(filePath).toLowerCase();
+            if (ext === '.webm') return 'video/webm';
+            if (ext === '.mov') return 'video/quicktime';
+            if (ext === '.mkv') return 'video/x-matroska';
+            if (ext === '.avi') return 'video/x-msvideo';
+            return 'video/mp4';
+        }
+        if (type === 'audio') {
+            const ext = path.extname(filePath).toLowerCase();
+            if (ext === '.wav') return 'audio/wav';
+            if (ext === '.ogg') return 'audio/ogg';
+            if (ext === '.m4a') return 'audio/mp4';
+            return 'audio/mpeg';
+        }
+
+        const ext = path.extname(filePath).toLowerCase();
+        const mimeByExt = {
+            '.jpg': 'image/jpeg',
+            '.jpeg': 'image/jpeg',
+            '.png': 'image/png',
+            '.gif': 'image/gif',
+            '.webp': 'image/webp',
+            '.bmp': 'image/bmp',
+            '.mp4': 'video/mp4',
+            '.webm': 'video/webm',
+            '.mov': 'video/quicktime',
+            '.mkv': 'video/x-matroska',
+            '.avi': 'video/x-msvideo',
+            '.mp3': 'audio/mpeg',
+            '.wav': 'audio/wav',
+            '.ogg': 'audio/ogg',
+            '.m4a': 'audio/mp4',
+            '.pdf': 'application/pdf'
+        };
+        return mimeByExt[ext] || 'application/octet-stream';
+    }
+
+    async postFormData(pathname, formData) {
+        const response = await fetch(this.buildEndpoint(pathname), {
+            method: 'POST',
+            headers: {
+                'x-api-key': String(this.config.apiKey || '').trim()
+            },
+            body: formData,
+            signal: AbortSignal.timeout(Number(this.config.timeoutMs) || 10000)
+        });
+
+        const bodyText = await response.text();
+        let body = null;
+
+        if (bodyText) {
+            try {
+                body = JSON.parse(bodyText);
+            } catch (error) {
+                body = { raw: bodyText };
+            }
+        }
+
+        if (!response.ok) {
+            const message = body && body.message ? body.message : `HTTP ${response.status}`;
+            throw new Error(message);
+        }
+
+        return body || {};
+    }
+
     async sendDrqMessage(payload = {}) {
         const text = typeof payload.text === 'string' ? payload.text.trim() : '';
         if (!text) {
@@ -599,6 +740,58 @@ class DrqAdapter extends utils.Adapter {
             ok: true,
             recipients: finalRecipients,
             response: result
+        };
+    }
+
+    async sendDrqMedia(payload = {}) {
+        const filePath = typeof payload.path === 'string' ? payload.path.trim() : '';
+        if (!filePath) {
+            throw new Error('Missing file path');
+        }
+
+        const resolvedPath = path.resolve(filePath);
+        if (!fs.existsSync(resolvedPath)) {
+            throw new Error(`File not found: ${resolvedPath}`);
+        }
+
+        const stats = fs.statSync(resolvedPath);
+        if (!stats.isFile()) {
+            throw new Error(`Path is not a file: ${resolvedPath}`);
+        }
+
+        const recipients = this.normalizeRecipients(payload.recipients);
+        const fallbackRecipients = this.getConfiguredRecipients();
+        const finalRecipients = recipients.length > 0 ? recipients : fallbackRecipients;
+        if (finalRecipients.length === 0) {
+            throw new Error('No recipients configured');
+        }
+
+        const fileBuffer = await fs.promises.readFile(resolvedPath);
+        const filename = path.basename(resolvedPath);
+        const mimeType = this.detectMediaMimeType(resolvedPath, payload.type || '');
+        const formData = new FormData();
+        const fileBlob = new Blob([fileBuffer], { type: mimeType });
+
+        formData.append('file', fileBlob, filename);
+        formData.append('recipients', finalRecipients.join(','));
+        formData.append('title', payload.title || '');
+        formData.append('caption', payload.caption || '');
+        formData.append('severity', payload.severity || 'info');
+        formData.append('source', payload.source || this.config.sourceName || 'ioBroker');
+        formData.append('type', payload.type || '');
+
+        const result = await this.postFormData('/api/integrations/iobroker/media', formData);
+
+        await this.setStateAsync('info.connection', true, true);
+        await this.setStateAsync('info.lastMessage', payload.caption || filename, true);
+        await this.setStateAsync('info.lastError', '', true);
+        await this.setStateAsync('info.lastResult', JSON.stringify(result), true);
+
+        return {
+            ok: true,
+            recipients: finalRecipients,
+            response: result,
+            path: resolvedPath
         };
     }
 
@@ -665,6 +858,32 @@ class DrqAdapter extends utils.Adapter {
             await this.setStateAsync('info.connection', false, true);
             await this.setStateAsync('info.lastError', error.message, true);
             this.log.error(`DRQ ${severity} send failed: ${error.message}`);
+        } finally {
+            await this.setStateAsync(stateId, '', true);
+        }
+    }
+
+    async handleMediaPathState(stateId, state, type) {
+        const mediaPath = typeof state.val === 'string' ? state.val.trim() : '';
+        if (!mediaPath) {
+            await this.setStateAsync(stateId, '', true);
+            return;
+        }
+
+        try {
+            await this.sendDrqMedia({
+                path: mediaPath,
+                type,
+                recipients: (await this.getStateAsync('send.recipients'))?.val || '',
+                title: (await this.getStateAsync('send.title'))?.val || '',
+                caption: (await this.getStateAsync('send.caption'))?.val || '',
+                severity: (await this.getStateAsync('send.severity'))?.val || 'info',
+                source: this.config.sourceName || 'ioBroker'
+            });
+        } catch (error) {
+            await this.setStateAsync('info.connection', false, true);
+            await this.setStateAsync('info.lastError', error.message, true);
+            this.log.error(`DRQ ${type} send failed: ${error.message}`);
         } finally {
             await this.setStateAsync(stateId, '', true);
         }
@@ -742,6 +961,32 @@ class DrqAdapter extends utils.Adapter {
                 const result = await this.sendDrqMessage(
                     this.buildMessagePayload(obj.message, { severity: severityOverrides[obj.command] })
                 );
+                if (obj.callback) {
+                    this.sendTo(obj.from, obj.command, result, obj.callback);
+                }
+            } catch (error) {
+                await this.setStateAsync('info.connection', false, true);
+                await this.setStateAsync('info.lastError', error.message, true);
+                this.log.error(`DRQ ${obj.command} failed: ${error.message}`);
+                if (obj.callback) {
+                    this.sendTo(obj.from, obj.command, { ok: false, error: error.message }, obj.callback);
+                }
+            }
+            return;
+        }
+
+        if (obj.command === 'sendMedia') {
+            try {
+                const mediaPayload = obj.message && typeof obj.message === 'object' ? obj.message : {};
+                const result = await this.sendDrqMedia({
+                    path: mediaPayload.path || mediaPayload.filePath || '',
+                    type: mediaPayload.type || '',
+                    recipients: mediaPayload.recipients || '',
+                    title: mediaPayload.title || '',
+                    caption: mediaPayload.caption || '',
+                    severity: mediaPayload.severity || 'info',
+                    source: mediaPayload.source || this.config.sourceName || 'ioBroker'
+                });
                 if (obj.callback) {
                     this.sendTo(obj.from, obj.command, result, obj.callback);
                 }

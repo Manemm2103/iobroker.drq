@@ -1,6 +1,6 @@
 {
   "name": "iobroker.drq",
-  "version": "0.4.1",
+  "version": "0.5.0",
   "description": "ioBroker adapter for sending and receiving DRQ messenger notifications",
   "author": {
     "name": "OpenAI Codex"

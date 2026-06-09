@@ -1,8 +1,12 @@
 {
   "common": {
     "name": "drq",
-    "version": "0.4.1",
+    "version": "0.5.0",
     "news": {
+      "0.5.0": {
+        "en": "Add sending local image, video and file paths from ioBroker to DRQ",
+        "de": "Fuegt das Senden lokaler Bild-, Video- und Dateipfade aus ioBroker an DRQ hinzu"
+      },
       "0.4.1": {
         "en": "Add Blockly-friendly send commands for info, warn and alarm via sendTo",
         "de": "Fuegt Blockly-freundliche Sendekommandos fuer Info, Warnung und Alarm per sendTo hinzu"
@@ -213,6 +217,58 @@
       "type": "state",
       "common": {
         "name": "Direct alarm message",
+        "type": "string",
+        "role": "text",
+        "read": true,
+        "write": true,
+        "def": ""
+      },
+      "native": {}
+    },
+    {
+      "_id": "send.imagePath",
+      "type": "state",
+      "common": {
+        "name": "Direct image path",
+        "type": "string",
+        "role": "text",
+        "read": true,
+        "write": true,
+        "def": ""
+      },
+      "native": {}
+    },
+    {
+      "_id": "send.videoPath",
+      "type": "state",
+      "common": {
+        "name": "Direct video path",
+        "type": "string",
+        "role": "text",
+        "read": true,
+        "write": true,
+        "def": ""
+      },
+      "native": {}
+    },
+    {
+      "_id": "send.filePath",
+      "type": "state",
+      "common": {
+        "name": "Direct file path",
+        "type": "string",
+        "role": "text",
+        "read": true,
+        "write": true,
+        "def": ""
+      },
+      "native": {}
+    },
+    {
+      "_id": "send.caption",
+      "type": "state",
+      "common": {
+        "name": "Media caption",
         "type": "string",
         "role": "text",
         "read": true,
