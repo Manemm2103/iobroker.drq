@@ -1,8 +1,12 @@
 {
   "common": {
     "name": "drq",
-    "version": "0.5.0",
+    "version": "0.6.0",
     "news": {
+      "0.6.0": {
+        "en": "Add outbox status datapoints for sent, delivered and read DRQ messages",
+        "de": "Fuegt Outbox-Status-Datenpunkte fuer gesendete, zugestellte und gelesene DRQ-Nachrichten hinzu"
+      },
       "0.5.0": {
         "en": "Add sending local image, video and file paths from ioBroker to DRQ",
         "de": "Fuegt das Senden lokaler Bild-, Video- und Dateipfade aus ioBroker an DRQ hinzu"
@@ -146,6 +150,144 @@
         "name": "Last send error",
         "type": "string",
         "role": "text",
+        "read": true,
+        "write": false,
+        "def": ""
+      },
+      "native": {}
+    },
+    {
+      "_id": "outbox",
+      "type": "channel",
+      "common": {
+        "name": "Outbox"
+      },
+      "native": {}
+    },
+    {
+      "_id": "outbox.lastMessage",
+      "type": "state",
+      "common": {
+        "name": "Last outgoing message",
+        "type": "string",
+        "role": "text",
+        "read": true,
+        "write": false,
+        "def": ""
+      },
+      "native": {}
+    },
+    {
+      "_id": "outbox.lastRecipient",
+      "type": "state",
+      "common": {
+        "name": "Last outgoing recipients",
+        "type": "string",
+        "role": "text",
+        "read": true,
+        "write": false,
+        "def": ""
+      },
+      "native": {}
+    },
+    {
+      "_id": "outbox.lastRecipientUins",
+      "type": "state",
+      "common": {
+        "name": "Last outgoing recipient UINs",
+        "type": "string",
+        "role": "text",
+        "read": true,
+        "write": false,
+        "def": ""
+      },
+      "native": {}
+    },
+    {
+      "_id": "outbox.lastMessageIds",
+      "type": "state",
+      "common": {
+        "name": "Last outgoing message IDs",
+        "type": "string",
+        "role": "text",
+        "read": true,
+        "write": false,
+        "def": ""
+      },
+      "native": {}
+    },
+    {
+      "_id": "outbox.lastStatus",
+      "type": "state",
+      "common": {
+        "name": "Last outgoing status",
+        "type": "string",
+        "role": "text",
+        "read": true,
+        "write": false,
+        "def": ""
+      },
+      "native": {}
+    },
+    {
+      "_id": "outbox.lastStatusText",
+      "type": "state",
+      "common": {
+        "name": "Last outgoing status text",
+        "type": "string",
+        "role": "text",
+        "read": true,
+        "write": false,
+        "def": ""
+      },
+      "native": {}
+    },
+    {
+      "_id": "outbox.lastSentAt",
+      "type": "state",
+      "common": {
+        "name": "Last outgoing sent timestamp",
+        "type": "string",
+        "role": "value.time",
+        "read": true,
+        "write": false,
+        "def": ""
+      },
+      "native": {}
+    },
+    {
+      "_id": "outbox.lastDeliveredAt",
+      "type": "state",
+      "common": {
+        "name": "Last outgoing delivered timestamp",
+        "type": "string",
+        "role": "value.time",
+        "read": true,
+        "write": false,
+        "def": ""
+      },
+      "native": {}
+    },
+    {
+      "_id": "outbox.lastReadAt",
+      "type": "state",
+      "common": {
+        "name": "Last outgoing read timestamp",
+        "type": "string",
+        "role": "value.time",
+        "read": true,
+        "write": false,
+        "def": ""
+      },
+      "native": {}
+    },
+    {
+      "_id": "outbox.lastRaw",
+      "type": "state",
+      "common": {
+        "name": "Last outgoing raw status payload",
+        "type": "string",
+        "role": "json",
         "read": true,
         "write": false,
         "def": ""

@@ -24,6 +24,16 @@ class DrqAdapter extends utils.Adapter {
         await this.setStateAsync('info.lastError', '', true);
         await this.setStateAsync('info.lastResult', '', true);
         await this.setStateAsync('info.lastMessage', '', true);
+        await this.setStateAsync('outbox.lastMessage', '', true);
+        await this.setStateAsync('outbox.lastRecipient', '', true);
+        await this.setStateAsync('outbox.lastRecipientUins', '', true);
+        await this.setStateAsync('outbox.lastMessageIds', '', true);
+        await this.setStateAsync('outbox.lastStatus', '', true);
+        await this.setStateAsync('outbox.lastStatusText', '', true);
+        await this.setStateAsync('outbox.lastSentAt', '', true);
+        await this.setStateAsync('outbox.lastDeliveredAt', '', true);
+        await this.setStateAsync('outbox.lastReadAt', '', true);
+        await this.setStateAsync('outbox.lastRaw', '', true);
         await this.setStateAsync('inbox.lastMessage', '', true);
         await this.setStateAsync('inbox.lastSender', '', true);
         await this.setStateAsync('inbox.lastSenderUin', '', true);
@@ -100,6 +110,14 @@ class DrqAdapter extends utils.Adapter {
             native: {}
         });
 
+        await this.setObjectNotExistsAsync('outbox', {
+            type: 'channel',
+            common: {
+                name: 'Outbox'
+            },
+            native: {}
+        });
+
         await this.setObjectNotExistsAsync('inbox', {
             type: 'channel',
             common: {
@@ -148,6 +166,116 @@ class DrqAdapter extends utils.Adapter {
                     name: 'Last send error',
                     type: 'string',
                     role: 'text',
+                    read: true,
+                    write: false,
+                    def: ''
+                }
+            },
+            {
+                id: 'outbox.lastMessage',
+                common: {
+                    name: 'Last outgoing message',
+                    type: 'string',
+                    role: 'text',
+                    read: true,
+                    write: false,
+                    def: ''
+                }
+            },
+            {
+                id: 'outbox.lastRecipient',
+                common: {
+                    name: 'Last outgoing recipients',
+                    type: 'string',
+                    role: 'text',
+                    read: true,
+                    write: false,
+                    def: ''
+                }
+            },
+            {
+                id: 'outbox.lastRecipientUins',
+                common: {
+                    name: 'Last outgoing recipient UINs',
+                    type: 'string',
+                    role: 'text',
+                    read: true,
+                    write: false,
+                    def: ''
+                }
+            },
+            {
+                id: 'outbox.lastMessageIds',
+                common: {
+                    name: 'Last outgoing message IDs',
+                    type: 'string',
+                    role: 'text',
+                    read: true,
+                    write: false,
+                    def: ''
+                }
+            },
+            {
+                id: 'outbox.lastStatus',
+                common: {
+                    name: 'Last outgoing status',
+                    type: 'string',
+                    role: 'text',
+                    read: true,
+                    write: false,
+                    def: ''
+                }
+            },
+            {
+                id: 'outbox.lastStatusText',
+                common: {
+                    name: 'Last outgoing status text',
+                    type: 'string',
+                    role: 'text',
+                    read: true,
+                    write: false,
+                    def: ''
+                }
+            },
+            {
+                id: 'outbox.lastSentAt',
+                common: {
+                    name: 'Last outgoing sent timestamp',
+                    type: 'string',
+                    role: 'value.time',
+                    read: true,
+                    write: false,
+                    def: ''
+                }
+            },
+            {
+                id: 'outbox.lastDeliveredAt',
+                common: {
+                    name: 'Last outgoing delivered timestamp',
+                    type: 'string',
+                    role: 'value.time',
+                    read: true,
+                    write: false,
+                    def: ''
+                }
+            },
+            {
+                id: 'outbox.lastReadAt',
+                common: {
+                    name: 'Last outgoing read timestamp',
+                    type: 'string',
+                    role: 'value.time',
+                    read: true,
+                    write: false,
+                    def: ''
+                }
+            },
+            {
+                id: 'outbox.lastRaw',
+                common: {
+                    name: 'Last outgoing raw status payload',
+                    type: 'string',
+                    role: 'json',
                     read: true,
                     write: false,
                     def: ''
@@ -554,6 +682,127 @@ class DrqAdapter extends utils.Adapter {
         return this.normalizeRecipients(this.config.defaultRecipients);
     }
 
+    toIsoString(value) {
+        if (!value) {
+            return '';
+        }
+        const timestamp = Date.parse(String(value));
+        return Number.isNaN(timestamp) ? '' : new Date(timestamp).toISOString();
+    }
+
+    buildOutboxStatusSummary(messages) {
+        const total = messages.length;
+        const delivered = messages.filter(message => !!message.deliveredAt).length;
+        const read = messages.filter(message => !!message.isRead).length;
+
+        if (read === total && total > 0) {
+            return {
+                status: 'read',
+                text: total === 1 ? 'Gelesen' : `Gelesen von ${read}/${total} Empfaengern`
+            };
+        }
+
+        if (delivered === total && total > 0) {
+            return {
+                status: 'delivered',
+                text: total === 1 ? 'Zugestellt' : `Zugestellt an ${delivered}/${total} Empfaenger`
+            };
+        }
+
+        if (delivered > 0 || read > 0) {
+            return {
+                status: 'partial',
+                text: `Teilstatus: zugestellt ${delivered}/${total}, gelesen ${read}/${total}`
+            };
+        }
+
+        return {
+            status: 'sent',
+            text: total === 1 ? 'Gesendet' : `Gesendet an ${total} Empfaenger`
+        };
+    }
+
+    async updateOutboxStatesFromSend(payload = {}, result = {}) {
+        const sent = Array.isArray(result.sent) ? result.sent : [];
+        const missingRecipients = Array.isArray(result.missingRecipients) ? result.missingRecipients : [];
+        const sentAt = new Date().toISOString();
+        const recipientNames = sent.map(entry => entry.username || '').filter(Boolean);
+        const recipientUins = sent.map(entry => entry.uin != null ? String(entry.uin) : '').filter(Boolean);
+        const messageIds = sent.map(entry => entry.messageId != null ? String(entry.messageId) : '').filter(Boolean);
+        const sentCount = sent.length;
+        const baseText = sentCount <= 1 ? 'Gesendet' : `Gesendet an ${sentCount} Empfaenger`;
+        const statusText = missingRecipients.length
+            ? `${baseText}, ${missingRecipients.length} Empfaenger nicht gefunden`
+            : baseText;
+
+        await this.setStateAsync('outbox.lastMessage', payload.text || payload.caption || '', true);
+        await this.setStateAsync('outbox.lastRecipient', recipientNames.join(', '), true);
+        await this.setStateAsync('outbox.lastRecipientUins', recipientUins.join(', '), true);
+        await this.setStateAsync('outbox.lastMessageIds', messageIds.join(','), true);
+        await this.setStateAsync('outbox.lastStatus', sentCount > 0 ? 'sent' : 'failed', true);
+        await this.setStateAsync('outbox.lastStatusText', statusText, true);
+        await this.setStateAsync('outbox.lastSentAt', sentAt, true);
+        await this.setStateAsync('outbox.lastDeliveredAt', '', true);
+        await this.setStateAsync('outbox.lastReadAt', '', true);
+        await this.setStateAsync('outbox.lastRaw', JSON.stringify(result), true);
+    }
+
+    async pollOutboxStatus() {
+        const messageIdsState = String((await this.getStateAsync('outbox.lastMessageIds'))?.val || '').trim();
+        if (!messageIdsState) {
+            return {
+                ok: true,
+                count: 0,
+                messages: []
+            };
+        }
+
+        const messageIds = messageIdsState
+            .split(/[,\s;]+/)
+            .map(value => Number.parseInt(value, 10))
+            .filter(value => Number.isInteger(value) && value > 0);
+
+        if (!messageIds.length) {
+            return {
+                ok: true,
+                count: 0,
+                messages: []
+            };
+        }
+
+        const result = await this.getJson(`/api/integrations/iobroker/outbox-status?messageIds=${messageIds.join(',')}`);
+        const messages = Array.isArray(result.messages) ? result.messages : [];
+
+        if (!messages.length) {
+            return {
+                ok: true,
+                count: 0,
+                messages: []
+            };
+        }
+
+        const summary = this.buildOutboxStatusSummary(messages);
+        const deliveredAtValues = messages.map(message => this.toIsoString(message.deliveredAt)).filter(Boolean).sort();
+        const readAtValues = messages
+            .filter(message => !!message.isRead)
+            .map(message => this.toIsoString(message.deliveredAt || message.timestamp))
+            .filter(Boolean)
+            .sort();
+
+        await this.setStateAsync('outbox.lastStatus', summary.status, true);
+        await this.setStateAsync('outbox.lastStatusText', summary.text, true);
+        await this.setStateAsync('outbox.lastDeliveredAt', deliveredAtValues.length === messages.length ? deliveredAtValues[deliveredAtValues.length - 1] : '', true);
+        await this.setStateAsync('outbox.lastReadAt', readAtValues.length === messages.length ? readAtValues[readAtValues.length - 1] : '', true);
+        await this.setStateAsync('outbox.lastRaw', JSON.stringify(messages), true);
+
+        return {
+            ok: true,
+            count: messages.length,
+            status: summary.status,
+            messages
+        };
+    }
+
     buildEndpoint(pathname) {
         const normalizedBaseUrl = String(this.config.baseUrl || '').trim().replace(/\/+$/, '');
         return `${normalizedBaseUrl}${pathname}`;
@@ -735,6 +984,8 @@ class DrqAdapter extends utils.Adapter {
         await this.setStateAsync('info.lastMessage', text, true);
         await this.setStateAsync('info.lastError', '', true);
         await this.setStateAsync('info.lastResult', JSON.stringify(result), true);
+        await this.updateOutboxStatesFromSend({ text }, result);
+        await this.pollOutboxStatus();
 
         return {
             ok: true,
@@ -786,6 +1037,8 @@ class DrqAdapter extends utils.Adapter {
         await this.setStateAsync('info.lastMessage', payload.caption || filename, true);
         await this.setStateAsync('info.lastError', '', true);
         await this.setStateAsync('info.lastResult', JSON.stringify(result), true);
+        await this.updateOutboxStatesFromSend({ text: payload.caption || filename }, result);
+        await this.pollOutboxStatus();
 
         return {
             ok: true,
@@ -916,6 +1169,7 @@ class DrqAdapter extends utils.Adapter {
 
         await this.setStateAsync('info.connection', true, true);
         await this.setStateAsync('info.lastError', '', true);
+        await this.pollOutboxStatus();
         await this.setStateAsync('inbox.lastBatchCount', messages.length, true);
 
         if (!messages.length) {
