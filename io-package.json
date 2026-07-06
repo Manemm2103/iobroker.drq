@@ -1,8 +1,12 @@
 {
   "common": {
     "name": "drq",
-    "version": "0.6.0",
+    "version": "0.7.0",
     "news": {
+      "0.7.0": {
+        "en": "Add direct target datapoint for sending DRQ messages to a username or UIN override",
+        "de": "Fuegt einen direkten Ziel-Datenpunkt hinzu, um DRQ-Nachrichten gezielt an einen Benutzernamen oder eine UIN zu senden"
+      },
       "0.6.0": {
         "en": "Add outbox status datapoints for sent, delivered and read DRQ messages",
         "de": "Fuegt Outbox-Status-Datenpunkte fuer gesendete, zugestellte und gelesene DRQ-Nachrichten hinzu"
@@ -424,6 +428,19 @@
       "type": "state",
       "common": {
         "name": "Recipients",
+        "type": "string",
+        "role": "text",
+        "read": true,
+        "write": true,
+        "def": ""
+      },
+      "native": {}
+    },
+    {
+      "_id": "send.target",
+      "type": "state",
+      "common": {
+        "name": "Direct target username or UIN",
         "type": "string",
         "role": "text",
         "read": true,

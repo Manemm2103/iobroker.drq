@@ -53,6 +53,7 @@ class DrqAdapter extends utils.Adapter {
         await this.setStateAsync('send.filePath', '', true);
         await this.setStateAsync('send.caption', '', true);
         await this.setStateAsync('send.recipients', this.config.defaultRecipients || '', true);
+        await this.setStateAsync('send.target', '', true);
         await this.setStateAsync('send.title', '', true);
         await this.setStateAsync('send.severity', 'info', true);
         await this.setStateAsync('send.trigger', false, true);
@@ -491,6 +492,17 @@ class DrqAdapter extends utils.Adapter {
                 }
             },
             {
+                id: 'send.target',
+                common: {
+                    name: 'Direct target username or UIN',
+                    type: 'string',
+                    role: 'text',
+                    read: true,
+                    write: true,
+                    def: ''
+                }
+            },
+            {
                 id: 'send.testMessage',
                 common: {
                     name: 'Test message',
@@ -623,9 +635,10 @@ class DrqAdapter extends utils.Adapter {
         if (id === `${this.namespace}.send.testTrigger`) {
             try {
                 const testMessage = (await this.getStateAsync('send.testMessage'))?.val || 'Testnachricht aus ioBroker';
+                const recipients = await this.getActiveRecipientOverride();
                 await this.sendDrqMessage({
                     text: String(testMessage),
-                    recipients: (await this.getStateAsync('send.recipients'))?.val || '',
+                    recipients,
                     title: (await this.getStateAsync('send.title'))?.val || 'DRQ Test',
                     severity: (await this.getStateAsync('send.severity'))?.val || 'info',
                     source: this.config.sourceName || 'ioBroker'
@@ -680,6 +693,22 @@ class DrqAdapter extends utils.Adapter {
 
     getConfiguredRecipients() {
         return this.normalizeRecipients(this.config.defaultRecipients);
+    }
+
+    async getActiveRecipientOverride() {
+        const targetValue = String((await this.getStateAsync('send.target'))?.val || '').trim();
+        if (targetValue) {
+            return [targetValue];
+        }
+        return this.normalizeRecipients((await this.getStateAsync('send.recipients'))?.val || '');
+    }
+
+    resolvePayloadRecipients(payload = {}) {
+        const directTarget = String(payload.target || '').trim();
+        if (directTarget) {
+            return [directTarget];
+        }
+        return this.normalizeRecipients(payload.recipients);
     }
 
     toIsoString(value) {
@@ -962,7 +991,7 @@ class DrqAdapter extends utils.Adapter {
             throw new Error('Missing text');
         }
 
-        const recipients = this.normalizeRecipients(payload.recipients);
+        const recipients = this.resolvePayloadRecipients(payload);
         const fallbackRecipients = this.getConfiguredRecipients();
         const finalRecipients = recipients.length > 0 ? recipients : fallbackRecipients;
 
@@ -1010,7 +1039,7 @@ class DrqAdapter extends utils.Adapter {
             throw new Error(`Path is not a file: ${resolvedPath}`);
         }
 
-        const recipients = this.normalizeRecipients(payload.recipients);
+        const recipients = this.resolvePayloadRecipients(payload);
         const fallbackRecipients = this.getConfiguredRecipients();
         const finalRecipients = recipients.length > 0 ? recipients : fallbackRecipients;
         if (finalRecipients.length === 0) {
@@ -1064,6 +1093,7 @@ class DrqAdapter extends utils.Adapter {
         const payload = message && typeof message === 'object' ? message : {};
         return {
             text: typeof payload.text === 'string' ? payload.text : '',
+            target: payload.target || '',
             recipients: payload.recipients || '',
             title: payload.title || '',
             severity: overrides.severity || payload.severity || 'info',
@@ -1072,16 +1102,16 @@ class DrqAdapter extends utils.Adapter {
     }
 
     async sendConfiguredStateMessage() {
-        const [textState, recipientsState, titleState, severityState] = await Promise.all([
+        const [textState, titleState, severityState, recipients] = await Promise.all([
             this.getStateAsync('send.text'),
-            this.getStateAsync('send.recipients'),
             this.getStateAsync('send.title'),
-            this.getStateAsync('send.severity')
+            this.getStateAsync('send.severity'),
+            this.getActiveRecipientOverride()
         ]);
 
         return this.sendDrqMessage({
             text: textState?.val || '',
-            recipients: recipientsState?.val || '',
+            recipients,
             title: titleState?.val || '',
             severity: severityState?.val || 'info',
             source: this.config.sourceName || 'ioBroker'
@@ -1089,9 +1119,10 @@ class DrqAdapter extends utils.Adapter {
     }
 
     async sendDirectStateMessage(text, severity) {
+        const recipients = await this.getActiveRecipientOverride();
         await this.sendDrqMessage({
             text,
-            recipients: (await this.getStateAsync('send.recipients'))?.val || '',
+            recipients,
             title: (await this.getStateAsync('send.title'))?.val || '',
             severity,
             source: this.config.sourceName || 'ioBroker'
@@ -1124,10 +1155,11 @@ class DrqAdapter extends utils.Adapter {
         }
 
         try {
+            const recipients = await this.getActiveRecipientOverride();
             await this.sendDrqMedia({
                 path: mediaPath,
                 type,
-                recipients: (await this.getStateAsync('send.recipients'))?.val || '',
+                recipients,
                 title: (await this.getStateAsync('send.title'))?.val || '',
                 caption: (await this.getStateAsync('send.caption'))?.val || '',
                 severity: (await this.getStateAsync('send.severity'))?.val || 'info',

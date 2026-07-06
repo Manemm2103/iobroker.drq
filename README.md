@@ -2,7 +2,7 @@
 
 Minimaler ioBroker-Adapter zum Senden und Empfangen von DRQ-Nachrichten aus Skripten, Automationen und spaeter Blockly.
 
-## Funktionsumfang in Version 0.5.0
+## Funktionsumfang in Version 0.7.0
 
 - DRQ-Server per URL und API-Key konfigurieren
 - Standard-Empfaenger als DRQ-UINs hinterlegen
@@ -16,6 +16,7 @@ Minimaler ioBroker-Adapter zum Senden und Empfangen von DRQ-Nachrichten aus Skri
 - konfigurierbares Inbox-Polling
 - Blockly-freundliche `sendTo`-Kommandos fuer `info`, `warn` und `alarm`
 - lokale Bilder, Videos und Dateien per Dateipfad an DRQ senden
+- gezieltes Senden an genau einen DRQ-Nutzer per `send.target` mit Benutzername oder DRQ-UIN
 - einfache Verbindungs- und Fehlerstates
 
 ## Geplante DRQ-API
@@ -102,6 +103,7 @@ Der Adapter stellt dafuer diese States bereit:
 - `drq.0.send.warn`
 - `drq.0.send.alarm`
 - `drq.0.send.recipients`
+- `drq.0.send.target`
 - `drq.0.send.title`
 - `drq.0.send.severity`
 - `drq.0.send.trigger`
@@ -112,9 +114,12 @@ Beispiel:
 
 1. `drq.0.send.text` auf `Heizung stoert`
 2. optional `drq.0.send.recipients` auf `4711,8159`
-3. optional `drq.0.send.title` auf `Haus`
-4. `drq.0.send.severity` auf `info`, `warn` oder `alarm`
-5. `drq.0.send.trigger` auf `true`
+3. optional `drq.0.send.target` auf `Mane` oder `388906515`
+4. optional `drq.0.send.title` auf `Haus`
+5. `drq.0.send.severity` auf `info`, `warn` oder `alarm`
+6. `drq.0.send.trigger` auf `true`
+
+Wenn `send.target` gesetzt ist, hat dieser Wert Vorrang vor `send.recipients` und den Standard-Empfaengern.
 
 ## Direkt senden ueber einen Datenpunkt
 
@@ -129,6 +134,42 @@ setState('drq.0.send.direct', 'Fenster im Keller ist offen');
 ```
 
 Der Adapter sendet die Nachricht sofort und leert den State danach wieder.
+
+## Gezielt an einen einzelnen DRQ-Chat senden
+
+Wenn du aus ioBroker an genau einen Nutzer senden willst, setze einfach:
+
+- `drq.0.send.target`
+
+Das kann entweder sein:
+
+- der DRQ-Benutzername, z.B. `Mane`
+- oder die DRQ-Nummer / UIN, z.B. `388906515`
+
+Beispiel:
+
+```javascript
+setState('drq.0.send.target', '388906515');
+setState('drq.0.send.direct', 'Heizung im Keller ist wieder ok');
+```
+
+Oder per Benutzername:
+
+```javascript
+setState('drq.0.send.target', 'Lena');
+setState('drq.0.send.warn', 'Fenster im Bad ist noch offen');
+```
+
+Der eingetragene Wert in `send.target` wird auch fuer Bilder, Videos, Dateien, Trigger-Senden und Test-Senden verwendet.
+
+Per `sendTo()` geht es ebenfalls:
+
+```javascript
+sendTo('drq.0', 'send', {
+    text: 'Kaffeemaschine ist fertig',
+    target: 'Mane'
+});
+```
 
 ## Direkte Nachrichtentypen
 
@@ -169,7 +210,7 @@ setState('drq.0.send.caption', 'Bewegung im Hof');
 setState('drq.0.send.videoPath', '/opt/iobroker/kamera/clip1.mp4');
 ```
 
-Wenn `send.recipients` leer ist, verwendet der Adapter weiter die Standard-Empfaenger aus der Instanz.
+Wenn `send.target` leer ist und `send.recipients` ebenfalls leer ist, verwendet der Adapter weiter die Standard-Empfaenger aus der Instanz.
 
 ## Medien per sendTo
 
